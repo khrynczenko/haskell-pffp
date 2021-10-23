@@ -1,6 +1,6 @@
 
 foldl' _ acc [] = acc
-foldl' f acc (x:xs) = foldr' f (f acc x) xs
+foldl' f acc (x:xs) = foldl' f (f acc x) xs
 
 foldr' _ acc [] = acc
 foldr' f acc (x:xs) = f x (foldr' f acc xs)
@@ -53,3 +53,11 @@ g = foldl const 0 "tacos"
 h = foldl const 0 "burries"
 -- i) foldl (flip const) 'z' [1..5]
 i = foldl const 'z' [1..5]
+
+
+
+-- Why foldl unconditionally evaluates the spine while foldr does not
+-- Answer: because foldl must traverse the spine independently of what is the
+-- folding operation due to the implementation, foldr might not traverse 
+-- the whole spine if the folding operation does not evaluate the second
+-- argument.
