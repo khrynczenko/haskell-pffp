@@ -146,3 +146,63 @@ lefts' = foldr f []
   where
     f (Left a) acc = a : acc
     f (Right _) acc = acc
+
+-- 2.
+rights' :: [Either a b] -> [b]
+rights' = foldr f []
+  where
+    f (Right x) acc = x : acc
+    f (Left _) acc = acc
+
+-- 3.
+partitionEithers' :: [Either a b] -> ([a], [b])
+partitionEithers' = foldr f ([], [])
+  where
+    f (Left x) (ls, rs) = (x:ls, rs)
+    f (Right x) (ls, rs) = (ls, x:rs)
+
+-- 4.
+eitherMaybe' :: (b -> c) -> Either a b -> Maybe c
+eitherMaybe' _ (Left _) = Nothing
+eitherMaybe' f (Right x) = Just (f x)
+
+-- 5.
+either' :: (a -> c) -> (b -> c) -> Either a b -> c
+either' f _ (Left x)  = f x
+either' _ g (Right x)  = g x
+
+-- 6.
+eitherMaybe'' :: (b -> c) -> Either a b -> Maybe c
+eitherMaybe'' f value = either' (\x -> Nothing) (Just . f) value
+
+-- Write your own iterate and unfoldr
+-- 1.
+myIterate :: (a -> a) -> a -> [a]
+myIterate f v = f v : myIterate f (f v)
+
+-- 2.
+myUnfoldr :: (b -> Maybe (a, b)) -> b -> [a]
+myUnfoldr f prev =
+    case f prev of
+        (Just (val, new)) -> val : myUnfoldr f new
+        Nothing -> []
+
+
+-- 3.
+betterIterate :: (a -> a) -> a -> [a]
+betterIterate f v = myUnfoldr (\x -> Just (x, f x)) v
+
+-- Finally something other than list
+
+data BinaryTree a = Leaf | Node (BinaryTree a) a (BinaryTree a) deriving (Eq, Ord, Show)
+
+unfold' :: (a -> Maybe (a, b, a)) -> a -> BinaryTree b
+unfold' f v =
+    case f v of
+        Just (x, y, z) -> Node (unfold' f x) y (unfold' f z)
+        Nothing -> Leaf
+
+treeBuild :: Integer -> BinaryTree Integer
+treeBuild v = unfold' f 0
+  where
+    f x = if x < v then Just (x + 1, x, x + 1) else Nothing
