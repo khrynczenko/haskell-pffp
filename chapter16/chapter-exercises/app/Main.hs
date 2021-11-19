@@ -166,6 +166,58 @@ instance (Arbitrary (f a), Arbitrary (g a)) => Arbitrary (Parappa f g a) where
     arbitrary :: Gen (Parappa f g a)
     arbitrary = DaWrappa <$> arbitrary <*> arbitrary
 
+-- 7.
+data IgnoreOne f g a b = IgnoringSomething (f a) (g b) deriving stock (Eq, Show)
+
+instance Functor g => Functor (IgnoreOne f g a) where
+    fmap :: (b -> c) -> IgnoreOne f g a b -> IgnoreOne f g a c
+    fmap f (IgnoringSomething x y) = IgnoringSomething x (fmap f y)
+
+instance (Arbitrary (f a), Arbitrary (g b)) => Arbitrary (IgnoreOne f g a b) where
+    arbitrary :: Gen (IgnoreOne f g a b)
+    arbitrary = do
+        x <- arbitrary
+        y <- arbitrary
+        return (IgnoringSomething x y)
+
+-- 8.
+data Notorious g o a t = Notorious (g o) (g a) (g t) deriving stock (Eq, Show)
+
+instance Functor g => Functor (Notorious g o a) where
+    fmap :: (t -> l) -> Notorious g o a t -> Notorious g o a l
+    fmap f (Notorious x y z) = Notorious x y (fmap f z)
+
+instance (Arbitrary (g o), Arbitrary (g a), Arbitrary (g t)) => Arbitrary (Notorious g o a t) where
+    arbitrary :: Gen (Notorious g o a t)
+    arbitrary = Notorious <$> arbitrary <*> arbitrary <*> arbitrary
+
+-- 9.
+data List a = Nil | Cons a (List a) deriving stock (Eq, Show)
+
+instance Functor List where
+    fmap :: (a -> b) -> List a -> List b
+    fmap _ Nil = Nil
+    fmap f (Cons x rest) = Cons (f x) (fmap f rest)
+
+instance Arbitrary a => Arbitrary (List a) where
+    arbitrary :: Gen (List a)
+    arbitrary = do
+        x <- listOf arbitrary
+        return $ foldr Cons Nil x
+
+-- 10.
+data GoatLord a =
+    NoGoat
+  | OneGoat a
+  | MoreGoats (GoatLord a) (GoatLord a) (GoatLord a)
+  deriving (Eq, Show)
+
+instance Functor GoatLord where
+    fmap :: (a -> b) -> GoatLord a -> GoatLord b
+    fmap _ NoGoat = NoGoat
+    fmap f (OneGoat x) = OneGoat (f x)
+    fmap f (MoreGoats x y z) = MoreGoats (fmap f x) (fmap f y) (fmap f z)
+
 main :: IO ()
 main = do
     quickCheck (prop_functorIdentity :: BoolAndSomthingElse Int -> Bool)
@@ -184,3 +236,9 @@ main = do
     quickCheck (prop_functorAssociativity (+1) (+1) :: LiftItOut Maybe Int -> Bool)
     quickCheck (prop_functorIdentity :: Parappa Maybe Maybe Int -> Bool)
     quickCheck (prop_functorAssociativity (+1) (+1) :: Parappa Maybe Maybe Int -> Bool)
+    quickCheck (prop_functorIdentity :: IgnoreOne Maybe Maybe Int Int -> Bool)
+    quickCheck (prop_functorAssociativity (+1) (+1) :: IgnoreOne Maybe Maybe Int Int -> Bool)
+    quickCheck (prop_functorIdentity :: Notorious Maybe Int Int Int -> Bool)
+    quickCheck (prop_functorAssociativity (+1) (+1) :: Notorious Maybe Int Int Int -> Bool)
+    quickCheck (prop_functorIdentity :: List Int -> Bool)
+    quickCheck (prop_functorAssociativity (+1) (+1) :: List Int -> Bool)
